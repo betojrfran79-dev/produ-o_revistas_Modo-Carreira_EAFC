@@ -1,0 +1,6 @@
+{
+  "name": "Acompanhamento de Carreira EA FC",
+  "description": "Crie uma narrativa de jornalista profissional para a sua carreira no EA FC com base em imagens e vídeos, gerando revistas digitais personalizadas com os maiores nomes do jornalismo esportivo brasileiro.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,72 @@
+{
+  "entities": {
+    "CareerSettings": {
+      "title": "CareerSettings",
+      "description": "Configurações da carreira atual do usuário",
+      "type": "object",
+      "properties": {
+        "characterName": { "type": "string" },
+        "careerType": { "type": "string", "enum": ["player", "manager"] },
+        "teamName": { "type": "string" },
+        "season": { "type": "string" },
+        "journalistId": { "type": "string" },
+        "customApiKey": { "type": "string" }
+      },
+      "required": ["characterName", "careerType", "teamName", "season", "journalistId"]
+    },
+    "TimelineEntry": {
+      "title": "TimelineEntry",
+      "description": "Registro de evento na linha do tempo da carreira",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "month": { "type": "string" },
+        "type": { "type": "string", "enum": ["match", "transfer", "injury", "training", "award", "other"] },
+        "mediaUrl": { "type": "string" },
+        "mediaType": { "type": "string", "enum": ["image", "video"] },
+        "videoUrl": { "type": "string" },
+        "videoStart": { "type": "number" },
+        "videoEnd": { "type": "number" },
+        "sortOrder": { "type": "integer" },
+        "createdAt": { "type": "integer" }
+      },
+      "required": ["id", "title", "description", "month", "type", "createdAt"]
+    },
+    "Magazine": {
+      "title": "Magazine",
+      "description": "Revista digital gerada a partir dos registros",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "subtitle": { "type": "string" },
+        "editorialText": { "type": "string" },
+        "journalistId": { "type": "string" },
+        "period": { "type": "string" },
+        "pages": {
+          "type": "array",
+          "description": "Páginas da revista"
+        },
+        "createdAt": { "type": "integer" },
+        "coverImageUrl": { "type": "string" }
+      },
+      "required": ["id", "title", "subtitle", "editorialText", "journalistId", "period", "pages", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}/settings/{settingsId}": {
+      "schema": "CareerSettings",
+      "description": "Configurações de carreira do usuário"
+    },
+    "/users/{userId}/timeline/{entryId}": {
+      "schema": "TimelineEntry",
+      "description": "Lista de registros da linha do tempo do usuário"
+    },
+    "/users/{userId}/magazines/{magazineId}": {
+      "schema": "Magazine",
+      "description": "Lista de revistas geradas pelo usuário"
+    }
+  }
+}

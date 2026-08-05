@@ -1,0 +1,102 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 1. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // CareerSettings validation helper
+    function isValidCareerSettings(data) {
+      return data.keys().hasAll(['characterName', 'careerType', 'teamName', 'season', 'journalistId'])
+        && data.keys().size() <= 7
+        && data.characterName is string && data.characterName.size() > 0 && data.characterName.size() <= 100
+        && data.careerType is string && (data.careerType == 'player' || data.careerType == 'manager')
+        && data.teamName is string && data.teamName.size() > 0 && data.teamName.size() <= 100
+        && data.season is string && data.season.size() > 0 && data.season.size() <= 50
+        && data.journalistId is string && data.journalistId.size() > 0 && data.journalistId.size() <= 50
+        && (!data.keys().contains('customApiKey') || (data.customApiKey is string && data.customApiKey.size() <= 200));
+    }
+
+    // TimelineEntry validation helper
+    function isValidTimelineEntry(data) {
+      return data.keys().hasAll(['id', 'title', 'description', 'month', 'type', 'createdAt'])
+        && data.keys().size() <= 18
+        && data.id is string && isValidId(data.id)
+        && data.title is string && data.title.size() > 0 && data.title.size() <= 150
+        && data.description is string && data.description.size() <= 10000
+        && data.month is string && data.month.size() > 0 && data.month.size() <= 100
+        && data.type is string && (data.type == 'match' || data.type == 'transfer' || data.type == 'injury' || data.type == 'training' || data.type == 'award' || data.type == 'other')
+        && data.createdAt is int
+        && (!data.keys().contains('mediaUrl') || (data.mediaUrl is string && data.mediaUrl.size() <= 1500000))
+        && (!data.keys().contains('mediaType') || (data.mediaType is string && (data.mediaType == 'image' || data.mediaType == 'video' || data.mediaType == 'gallery' || data.mediaType == 'html' || data.mediaType == 'scratch')))
+        && (!data.keys().contains('scratchCoverText') || (data.scratchCoverText is string && data.scratchCoverText.size() <= 500))
+        && (!data.keys().contains('galleryUrls') || (data.galleryUrls is list && data.galleryUrls.size() <= 20))
+        && (!data.keys().contains('htmlCode') || (data.htmlCode is string && data.htmlCode.size() <= 50000))
+        && (!data.keys().contains('videoUrl') || (data.videoUrl is string && data.videoUrl.size() <= 500))
+        && (!data.keys().contains('videoStart') || (data.videoStart is number || data.videoStart is int || data.videoStart is float))
+        && (!data.keys().contains('videoEnd') || (data.videoEnd is number || data.videoEnd is int || data.videoEnd is float))
+        && (!data.keys().contains('sortOrder') || (data.sortOrder is int || data.sortOrder is number));
+    }
+
+    // Magazine validation helper
+    function isValidMagazine(data) {
+      return data.keys().hasAll(['id', 'title', 'subtitle', 'editorialText', 'journalistId', 'period', 'pages', 'createdAt'])
+        && data.keys().size() <= 12
+        && data.id is string && isValidId(data.id)
+        && data.title is string && data.title.size() > 0 && data.title.size() <= 300
+        && data.subtitle is string && data.subtitle.size() <= 1000
+        && data.editorialText is string && data.editorialText.size() <= 50000
+        && data.journalistId is string && data.journalistId.size() <= 100
+        && data.period is string && data.period.size() <= 200
+        && data.pages is list && data.pages.size() <= 100
+        && data.createdAt is int
+        && (!data.keys().contains('season') || (data.season is string && data.season.size() <= 100))
+        && (!data.keys().contains('coverImageUrl') || (data.coverImageUrl is string && data.coverImageUrl.size() <= 1200000));
+    }
+
+    // Users scope
+    match /users/{userId} {
+      allow read, write: if isOwner(userId) && isValidId(userId);
+
+      match /settings/{settingsId} {
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidId(settingsId) && isValidCareerSettings(request.resource.data);
+        allow delete: if isOwner(userId);
+      }
+
+      match /timeline/{entryId} {
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidId(entryId) && isValidTimelineEntry(request.resource.data);
+        allow delete: if isOwner(userId);
+      }
+
+      match /magazines/{magazineId} {
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidId(magazineId) && isValidMagazine(request.resource.data);
+        allow delete: if isOwner(userId);
+      }
+    }
+
+    // Public Shared Magazines
+    match /shared_magazines/{magazineId} {
+      allow read: if true;
+      allow create, update: if isValidId(magazineId) && isValidMagazine(request.resource.data);
+      allow delete: if false;
+    }
+  }
+}
